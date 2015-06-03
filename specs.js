@@ -97,34 +97,115 @@ describe('Testing MainCtrl 2', function(){
 
 });
 
-describe('Testing MainCtrl 3', function(){
-	var scope, createController, httpBackend;
+
+describe('Controller: List Libraries Controller', function (){
+	var scope, restService, $location;
+	
 	beforeEach(function(){
-		
-		module('myApp');
-		inject (function($controller, $rootScope, $httpBackend){
-			scope = $rootScope.$new();
-	        httpBackend = $httpBackend;
-	        createController = function() {
-	            return $controller('MainCtrl3', {
-	                $scope: scope,
-	                $http: $httpBackend
-	            });
-	        };							
+
+		var mockRestService = {};
+
+		module('myApp', function($provide){
+			$provide.value('restService', mockRestService);
+		});
+
+		inject(function($q) {
+			mockRestService.data = [
+				{
+					id:0,
+					name:'Angular'
+				},
+				{
+					id:1,
+					name:'Ember'
+				},
+				{
+					id:2,
+					name:'Backbone'
+				}
+			];
+
+			mockRestService.getAll = function (){
+				var defer = $q.defer();
+				defer.resolve(this.data);
+				return defer.promise;
+			};	
+
+			mockRestService.create = function(name){
+				var defer = $q.defer();
+				var id = this.data.length;
+
+				var item = {
+					id:id,
+					name: name
+				};
+
+				this.data.push(item);
+				defer.resolve(item);
+
+				return defer.promise;
+			};
 		});
 
 	});
- 
-	 it('sets correct initial values', function() {
-     	httpBackend.expectGET('api/incrementor/config').respond(200, {
-        	initialValue: 0,
-            maxValue: 3
-        });
 
-        createController();
-        httpBackend.flush();
-        expect(scope.value).toBe(0);
-        expect(scope.maxValue).toBe(3);
-    });
-    
+	beforeEach(inject(function($controller, $rootScope, _$location_, _restService_) {
+		scope = $rootScope.$new();
+		$location = _$location_;
+		restService = _restService_;
+
+		$controller('ListLibrariesCtrl', {
+			$scope: scope,
+			$location: $location,
+			restService: restService
+		});
+
+		scope.$digest();
+	}));
+
+	it('should contain all the libraries at startup', function() {
+		expect(scope.libraries).toEqual([
+			{
+				id:0,
+				name:'Angular'
+			},
+			{
+				id:1,
+				name:'Ember'
+			},
+			{
+				id:2,
+				name:'Backbone'
+			}
+		]);
+	});
+
+	it('should create new libraries and append it to the list', function() {
+		scope.newItemName = "porra";
+		scope.create();
+
+		var lastLibrary = scope.libraries[scope.libraries.length -1];
+
+		expect(lastLibrary).toEqual({
+			id: 3,
+			name: 'porra'
+		});
+	});
+
+	it('should redirect us to a library detais page', function() {
+		spyOn($location, 'path');
+		var aLibrary = scope.libraries[0];
+
+		scope.goToDetails(aLibrary);
+
+		expect($location.path).toHaveBeenCalledWith('/libraries/0/details');
+	});
 });
+
+
+
+
+
+
+
+
